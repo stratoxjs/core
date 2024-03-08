@@ -1,0 +1,28 @@
+{
+  "name": "@stratox/core",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "The framework core functionality.",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stratoxjs/core.git"
+  },
+  "bugs": {
+    "url": "https://stratox.wazabii.se/issues",
+    "email": "daniel.ronkainen@wazabii.se"
+  },
+  "homepage": "https://stratox.wazabii.se",
+  "keywords": [
+    "javascript",
+    "stratox",
+    "core"
+  ],
+  "author": "Daniel Ronkainen",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@stratox/pilot": "^1.0.5",
+    "eslint": "^8.0.0",
+    "stratox": "^2.2.4"
+  }
+}
