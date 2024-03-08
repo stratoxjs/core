@@ -1,5 +1,4 @@
-//import { Stratox } from '../../../stratox/src/Stratox.js';
-import { Stratox } from '../../node_modules/stratox/src/Stratox.js';
+import { Stratox } from 'stratox/src/Stratox';
 import { Dispatcher } from '@stratox/pilot';
 
 export default class App {
@@ -11,8 +10,9 @@ export default class App {
 	#elem;
 
 	constructor(config) {
-		
+
 		const inst = this;
+
 		if(!config?.prepAsyncViews) {
 			config.prepAsyncViews = import.meta.glob('@/templates/views/**/*.js');
 		}
