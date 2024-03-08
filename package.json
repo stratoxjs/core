@@ -21,8 +21,6 @@
   "author": "Daniel Ronkainen",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@stratox/pilot": "^1.0.5",
-    "eslint": "^8.0.0",
-    "stratox": "^2.2.4"
+    "eslint": "^8.0.0"
   }
 }
