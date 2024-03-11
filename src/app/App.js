@@ -12,7 +12,7 @@ export default class App {
 	constructor(config) {
 
 		const inst = this;
-
+		
 		if(!config?.prepAsyncViews) {
 			config.prepAsyncViews = import.meta.glob('@/templates/views/**/*.js');
 		}
@@ -22,6 +22,13 @@ export default class App {
 			directory: '/src/templates/views/',
 			components: null,
 			helper: {},
+			responder: null,
+			ajax: {
+				startPath: "",
+				url: false,
+				config: {
+				}
+			}
 		}, config);
 
 		Stratox.setConfigs({
@@ -208,6 +215,8 @@ export default class App {
 		const elem = this.getElement();
 		const name = (typeof elem === "string" ? elem : "main");
 		const stratox = new Stratox(elem, this.#config);
+
+		this.#router = routeCollection;
 		this.#dispatcher.dispatcher(routeCollection, serverParams, this.mountIndex(name, stratox, fn));
 		return this;
 	}
@@ -244,15 +253,82 @@ export default class App {
 		const inst = this;
 		Stratox.setComponent(name, this.main);
 
-		return function(data, status) {
-			stratox.view(name, {
-				meta: data,
-				router: this,
-				app: inst,
-				callable: fn
-			});
-			stratox.execute();
+		return function(dispatchData, status) {
+			inst.mountCallback(dispatchData, function() {
+				  stratox.view(name, {
+					meta: dispatchData,
+					app: inst,
+					callable: fn
+				});
+
+				return stratox.execute();
+
+			}, (status !== 200));
 		}
+	}
+
+	/**
+	 * Take over the responder
+	 * @param  {callable} call
+	 * @return {void}
+	 */
+	responder(call) {
+		if(typeof call !== "function") {
+			throw new Error("The responder argument 1 has to be a callable!")
+		}
+		this.#config.responder = call;
+	}
+
+	/**
+	 * Mount callable
+	 * @param  {object} 	dispatchData The dispatcher response
+	 * @param  {callable} 	call
+	 * @param  {bool} 		disableFetch Disable the fetch
+	 * @return {void}
+	 */
+	mountCallback(dispatchData, call, disableFetch) {
+		const inst = this;
+		if(typeof inst.#config.ajax.url === "string" && (disableFetch === false)) {
+			const url = inst.trimTrailingSlashes(inst.#config.ajax.url);
+			const path = inst.getPath(dispatchData.path);
+
+			dispatchData.url = url;
+
+			if(typeof inst.#config.responder === "function") {
+				inst.#config.responder(call, dispatchData, url, path);
+			} else {
+				inst.#config.ajax.config.method = dispatchData.verb;
+				const fetchResponse = fetch(url+path, inst.#config.ajax.config);
+				fetchResponse.then(function(response) {
+					const errorController = inst.#router.getStatusError(response.status);
+		        	if(errorController) {
+		        		dispatchData.controller = errorController;
+		        		dispatchData.status = response.status;
+		        	}
+					call(dispatchData);
+				});
+			}
+
+		} else {
+			if(typeof inst.#config.responder === "function") {
+				inst.#config.responder(call, dispatchData, url, path)
+			} else {
+				call(dispatchData);
+			}
+		}
+	}
+
+	/**
+	 * Get expected fetch path
+	 * @param  {string} path
+	 * @return {string}
+	 */
+	getPath(path) {
+		let newPath = this.#config.ajax.startPath;
+		if(path.length > 0) {
+			newPath = path.join("/")
+		}
+		return "/"+this.trimLeadingSlashes(newPath);
 	}
 
 	/**
@@ -301,6 +377,14 @@ export default class App {
 	    return (Math.random().toString(36).substring(2, 2 + length));
 	}
 
+	trimLeadingSlashes(path) {
+		return  path.replace(/^\/+/, "");
+	}
+
+	trimTrailingSlashes(path) {
+		return  path.replace(/\/+$/, "");
+	}
+	
 	/*
 	static getNodeID(prefix) {
 	    return "#"+prefix+this.genRandStr();
