@@ -24,12 +24,24 @@ export default class App {
 			helper: {},
 			responder: null,
 			ajax: {
-				startPath: "",
-				url: false,
-				config: {
-				}
+				
 			}
 		}, config);
+
+		inst.#config.ajax = Object.assign({
+			startPath: "",
+			url: false,
+			dataType: "json",
+			config: {}
+
+		}, config?.ajax);
+
+		inst.#config.ajax.config = Object.assign({
+			method: "GET",
+			headers: {
+				'Accept': 'application/json', // Indicates that the client expects JSON data
+		    }
+		}, config?.ajax?.config);
 
 		Stratox.setConfigs({
 			cache: false,
@@ -291,21 +303,51 @@ export default class App {
 		if(typeof inst.#config.ajax.url === "string" && (disableFetch === false)) {
 			const url = inst.trimTrailingSlashes(inst.#config.ajax.url);
 			const path = inst.getPath(dispatchData.path);
+			const queryStr = inst.getQueryStr(dispatchData.request.get);
+			const uri = url+path+queryStr;
+			const ajaxConfig = inst.#config.ajax.config;
 
 			dispatchData.url = url;
 
 			if(typeof inst.#config.responder === "function") {
 				inst.#config.responder(call, dispatchData, url, path);
 			} else {
-				inst.#config.ajax.config.method = dispatchData.verb;
-				const fetchResponse = fetch(url+path, inst.#config.ajax.config);
+
+				ajaxConfig.method = dispatchData.verb;
+				if(dispatchData.verb == "POST" && dispatchData.request.post instanceof FormData) {
+					ajaxConfig.body = dispatchData.request.post;
+				}
+
+				const fetchResponse = fetch(uri, ajaxConfig);
 				fetchResponse.then(function(response) {
+
 					const errorController = inst.#router.getStatusError(response.status);
 		        	if(errorController) {
 		        		dispatchData.controller = errorController;
 		        		dispatchData.status = response.status;
+		        		throw new Error(`HTTP Status error code ${response.status}`);
 		        	}
+
+		        	if(typeof response[inst.#config.ajax.dataType] !== "function") {
+		        		throw new Error(`The data type ${inst.#config.ajax.dataType} is not supported in fetch`);		        		
+		        	}
+
+		        	return response[inst.#config.ajax.dataType](); 
+					
+				}).then(function(dataResponse) {
+
+					if(inst.#config.ajax.dataType === "xml") {
+						const parser = new DOMParser();
+    					dispatchData.response = parser.parseFromString(dataResponse, "application/xml");
+
+					} else {
+						dispatchData.response = dataResponse;
+					}
 					call(dispatchData);
+
+				}).catch(function(error) {
+				    console.error('There was a problem with your fetch operation:', error);
+				    call(dispatchData);
 				});
 			}
 
@@ -329,6 +371,21 @@ export default class App {
 			newPath = path.join("/")
 		}
 		return "/"+this.trimLeadingSlashes(newPath);
+	}
+
+	/**
+	 * Get query string
+	 * @param  {URLSearchParams} getRequest
+	 * @return {string}
+	 */
+	getQueryStr(getRequest) {
+		if(getRequest instanceof URLSearchParams) {
+			const queryStr = getRequest.toString();
+			if(queryStr.length > 0) {
+				return "?"+queryStr;
+			}
+		}
+		return "";
 	}
 
 	/**
