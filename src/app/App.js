@@ -29,7 +29,7 @@ export default class App {
 			},
 			ajax: {
 				startPath: "",
-				url: "",
+				url: false,
 				dataType: "json",
 				config: {
 					method: "GET",
