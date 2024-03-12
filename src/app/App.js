@@ -1,5 +1,6 @@
 import { Stratox } from 'stratox/src/Stratox';
 import { Dispatcher } from '@stratox/pilot';
+import { ObjectHelper, UrlHelper } from '@stratox/core';
 
 export default class App {
 
@@ -10,38 +11,35 @@ export default class App {
 	#elem;
 
 	constructor(config) {
-
+		
 		const inst = this;
 		
 		if(!config?.prepAsyncViews) {
 			config.prepAsyncViews = import.meta.glob('@/templates/views/**/*.js');
 		}
 
-		inst.#config = Object.assign({
-			prepAsyncViews: null,
+		inst.#config = ObjectHelper.deepMerge({
+			prepAsyncViews: {},
 			directory: '/src/templates/views/',
-			components: null,
+			components: {},
 			helper: {},
 			responder: null,
+			dispatcher: {
+				catchForms: true
+			},
 			ajax: {
-				
+				startPath: "",
+				url: "",
+				dataType: "json",
+				config: {
+					method: "GET",
+					headers: {
+						// Indicates that the client expects JSON data
+						'Accept': 'application/json',
+				    }
+				}
 			}
 		}, config);
-
-		inst.#config.ajax = Object.assign({
-			startPath: "",
-			url: false,
-			dataType: "json",
-			config: {}
-
-		}, config?.ajax);
-
-		inst.#config.ajax.config = Object.assign({
-			method: "GET",
-			headers: {
-				'Accept': 'application/json', // Indicates that the client expects JSON data
-		    }
-		}, config?.ajax?.config);
 
 		Stratox.setConfigs({
 			cache: false,
@@ -210,9 +208,7 @@ export default class App {
 	 */
 	setup(elem) {
 		this.setElement(elem);
-		this.#dispatcher = new Dispatcher({
-		    catchForms: true
-		});
+		this.#dispatcher = new Dispatcher(this.#config.dispatcher);
 		return this;
 	}
 
@@ -301,9 +297,9 @@ export default class App {
 	mountCallback(dispatchData, call, disableFetch) {
 		const inst = this;
 		if(typeof inst.#config.ajax.url === "string" && (disableFetch === false)) {
-			const url = inst.trimTrailingSlashes(inst.#config.ajax.url);
-			const path = inst.getPath(dispatchData.path);
-			const queryStr = inst.getQueryStr(dispatchData.request.get);
+			const url = UrlHelper.trimTrailingSlashes(inst.#config.ajax.url);
+			const path = UrlHelper.getPath(dispatchData.path, this.#config.ajax.startPath);
+			const queryStr = UrlHelper.getQueryStr(dispatchData.request.get);
 			const uri = url+path+queryStr;
 			const ajaxConfig = inst.#config.ajax.config;
 
@@ -361,34 +357,6 @@ export default class App {
 	}
 
 	/**
-	 * Get expected fetch path
-	 * @param  {string} path
-	 * @return {string}
-	 */
-	getPath(path) {
-		let newPath = this.#config.ajax.startPath;
-		if(path.length > 0) {
-			newPath = path.join("/")
-		}
-		return "/"+this.trimLeadingSlashes(newPath);
-	}
-
-	/**
-	 * Get query string
-	 * @param  {URLSearchParams} getRequest
-	 * @return {string}
-	 */
-	getQueryStr(getRequest) {
-		if(getRequest instanceof URLSearchParams) {
-			const queryStr = getRequest.toString();
-			if(queryStr.length > 0) {
-				return "?"+queryStr;
-			}
-		}
-		return "";
-	}
-
-	/**
 	 * Will return the expected prepare views that will be built by vite and used as a dynamic view public!
 	 * @return {void}
 	 */
@@ -434,22 +402,4 @@ export default class App {
 	    return (Math.random().toString(36).substring(2, 2 + length));
 	}
 
-	trimLeadingSlashes(path) {
-		return  path.replace(/^\/+/, "");
-	}
-
-	trimTrailingSlashes(path) {
-		return  path.replace(/\/+$/, "");
-	}
-	
-	/*
-	static getNodeID(prefix) {
-	    return "#"+prefix+this.genRandStr();
-	}
-
-	//Create a valid DOM shadow tag
-	static getShadowTag(prefix) {
-	    return '<template id="'+this.getElementID("stratox-node")+'"></template>';
-	}
-	 */
 }
