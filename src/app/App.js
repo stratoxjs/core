@@ -27,8 +27,9 @@ export default class App {
 			dispatcher: {
 				catchForms: true
 			},
-			ajax: {
+			response: {
 				startPath: "",
+				path: false,
 				url: false,
 				dataType: "json",
 				config: {
@@ -261,7 +262,7 @@ export default class App {
 		const inst = this;
 		Stratox.setComponent(name, this.main);
 
-		return function(dispatchData, status) {
+		return function(dispatchData, status) {		
 			inst.mountCallback(dispatchData, function() {
 				  stratox.view(name, {
 					meta: dispatchData,
@@ -272,6 +273,7 @@ export default class App {
 				return stratox.execute();
 
 			}, (status !== 200));
+			
 		}
 	}
 
@@ -296,12 +298,20 @@ export default class App {
 	 */
 	mountCallback(dispatchData, call, disableFetch) {
 		const inst = this;
-		if(typeof inst.#config.ajax.url === "string" && (disableFetch === false)) {
-			const url = UrlHelper.trimTrailingSlashes(inst.#config.ajax.url);
-			const path = UrlHelper.getPath(dispatchData.path, this.#config.ajax.startPath);
-			const queryStr = UrlHelper.getQueryStr(dispatchData.request.get);
+
+		let responseConfig = inst.#config.response;
+		if(typeof dispatchData.controller[2] === "object") {
+			const configs = dispatchData.controller[2];
+			responseConfig = inst.overwriteConfigFromRouter(configs.response, {...inst.#config.response});
+		}
+
+		if(typeof responseConfig.url === "string" && (disableFetch === false)) {
+
+			const url = UrlHelper.trimTrailingSlashes(responseConfig.url);
+			const path = UrlHelper.getPath(inst.getResponseType(responseConfig?.path, dispatchData.path), responseConfig.startPath);
+			const queryStr = UrlHelper.getQueryStr(inst.getResponseType(responseConfig?.request?.get, dispatchData.request.get));
 			const uri = url+path+queryStr;
-			const ajaxConfig = inst.#config.ajax.config;
+			const ajaxConfig = responseConfig.config;
 
 			dispatchData.url = url;
 
@@ -309,14 +319,19 @@ export default class App {
 				inst.#config.responder(call, dispatchData, url, path);
 			} else {
 
+				let post;
 				ajaxConfig.method = dispatchData.verb;
-				if(dispatchData.verb == "POST" && dispatchData.request.post instanceof FormData) {
-					ajaxConfig.body = dispatchData.request.post;
+				if(typeof responseConfig?.request?.post === "object") {
+					post = ObjectHelper.objToFormData(responseConfig.request.post);
+					ajaxConfig.method = "POST";
+				}
+				post = inst.getResponseType(post, dispatchData.request.post)
+				if(ajaxConfig.method == "POST" && post instanceof FormData) {
+					ajaxConfig.body = post;
 				}
 
 				const fetchResponse = fetch(uri, ajaxConfig);
 				fetchResponse.then(function(response) {
-
 					const errorController = inst.#router.getStatusError(response.status);
 		        	if(errorController) {
 		        		dispatchData.controller = errorController;
@@ -324,15 +339,15 @@ export default class App {
 		        		throw new Error(`HTTP Status error code ${response.status}`);
 		        	}
 
-		        	if(typeof response[inst.#config.ajax.dataType] !== "function") {
-		        		throw new Error(`The data type ${inst.#config.ajax.dataType} is not supported in fetch`);		        		
+		        	if(typeof response[responseConfig.dataType] !== "function") {
+		        		throw new Error(`The data type ${responseConfig.dataType} is not supported in fetch`);		        		
 		        	}
 
-		        	return response[inst.#config.ajax.dataType](); 
+		        	return response[responseConfig.dataType](); 
 					
 				}).then(function(dataResponse) {
 
-					if(inst.#config.ajax.dataType === "xml") {
+					if(responseConfig.dataType === "xml") {
 						const parser = new DOMParser();
     					dispatchData.response = parser.parseFromString(dataResponse, "application/xml");
 
@@ -354,6 +369,36 @@ export default class App {
 				call(dispatchData);
 			}
 		}
+	}
+
+	/**
+	 * Get response either from router or dispatch
+	 * @param  {mixed} value
+	 * @param  {mixed} defaultValue
+	 * @return {mixed}
+	 */
+	getResponseType(value, defaultValue) {
+		if(value !== undefined && value !== false && value !== null) {
+			return value;
+		}
+		return (defaultValue !== undefined) ? defaultValue : false;
+	}
+
+	/**
+	 * Overwrite app default configs from router
+	 * @param  {mixed} fromRouter
+	 * @param  {mixed} fromConfig
+	 * @return {mixed}
+	 */
+	overwriteConfigFromRouter(fromRouter, fromConfig) {
+		if(fromRouter !== undefined) {
+			if(fromRouter === false) {
+				fromConfig = false;
+			} else {
+				fromConfig = ObjectHelper.deepMerge(fromConfig, fromRouter);
+			}
+		}
+		return fromConfig;
 	}
 
 	/**

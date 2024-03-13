@@ -32,3 +32,16 @@ export function deepMerge(target, source) {
 	return target;
 
 }
+
+/**
+ * Convert object to instance of FormData
+ * @param  {object} request
+ * @return {FormData}
+ */
+export function objToFormData(request) {
+    const formData = new FormData();
+    for(const [key, value] of Object.entries(request)) {
+        formData.append(key, value);
+    }
+    return formData;
+}
