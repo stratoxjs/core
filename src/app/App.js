@@ -378,6 +378,9 @@ export default class App {
 	 * @return {mixed}
 	 */
 	getResponseType(value, defaultValue) {
+		if(typeof value === "function") {
+			value = value(defaultValue);
+		}
 		if(value !== undefined && value !== false && value !== null) {
 			return value;
 		}
