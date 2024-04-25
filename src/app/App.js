@@ -307,6 +307,10 @@ export default class App {
 
 		if(typeof responseConfig.url === "string" && (disableFetch === false)) {
 
+			if(responseConfig.config.body) {
+				delete responseConfig.config.body;
+			}
+			
 			const url = UrlHelper.trimTrailingSlashes(responseConfig.url);
 			const path = UrlHelper.getPath(inst.getResponseType(responseConfig?.path, dispatchData.path), responseConfig.startPath);
 			const queryStr = UrlHelper.getQueryStr(inst.getResponseType(responseConfig?.request?.get, dispatchData.request.get));
