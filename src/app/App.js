@@ -321,10 +321,17 @@ export default class App {
 
 				let post;
 				ajaxConfig.method = dispatchData.verb;
+
 				if(typeof responseConfig?.request?.post === "object") {
 					post = ObjectHelper.objToFormData(responseConfig.request.post);
 					ajaxConfig.method = "POST";
 				}
+
+				// StratoxPilot is prepared to be the FormData handler BUT at this time there is a clone limitation for FormData.
+				if(!(post instanceof FormData) && (typeof dispatchData.request.post === "object") && !(dispatchData.request.post instanceof FormData)) {
+					post = ObjectHelper.objToFormData(dispatchData.request.post);
+				}
+
 				post = inst.getResponseType(post, dispatchData.request.post)
 				if(ajaxConfig.method == "POST" && post instanceof FormData) {
 					ajaxConfig.body = post;
