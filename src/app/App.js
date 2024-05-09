@@ -27,11 +27,20 @@ export default class App {
 			dispatcher: {
 				catchForms: true
 			},
-			response: {
+			ready: function() {
+
+			},
+			request: {
 				startPath: "",
 				path: false,
 				url: false,
 				dataType: "json",
+				get: function(searchParams) {
+					return searchParams;
+				},
+				post: function(object) {
+					return (typeof object === "object") ? object : {};
+				},
 				config: {
 					method: "GET",
 					headers: {
@@ -102,6 +111,7 @@ export default class App {
 			}			
 		}
 
+
 		// Pass response to builder
 		if(createResponse?.type !== "takeover") {
 			const obj = App.createResponse(inst);
@@ -111,12 +121,17 @@ export default class App {
 	        if(typeof response !== "string") {
 	            throw new Error("The controller response needs to be string or an instance of Stratox");
 	        }
-
+	        
 			if(typeof data.callable === "function") {
+				if(obj.inst === undefined) {	
+					obj.inst = inst;
+				}
 				let call = data.callable.apply(obj.inst, [obj.response, data.meta]);
 				return call;
 			}
 		}
+
+
 		return response;
 	}
 
@@ -131,16 +146,14 @@ export default class App {
 			let inst = response[i], carrot = false, uniqueIDA, uniqueIDB = "stratox-el-"+App.genRandStr(10), out = "";
 			out = inst.execute(function() {
        			if(carrot) {
-       				inst.eventOnload(function() {
-	       				const el = document.getElementById(uniqueIDA);
-	       				el.outerHTML = inst.getResponse();
-       				});
+       				const el = document.getElementById(uniqueIDA);
+       				if(el) {
+       					el.outerHTML = inst.getResponse();
+       				}
        			}
-       			inst.eventOnload(function() {
-       				inst.setElement("#"+uniqueIDB);
-       			});
+       			inst.setElement("#"+uniqueIDB);
+       			
        		});
-
 			if(inst.hasView() === false) {
 				// Create a valid DOM shadow tag as a reference to view.
        			carrot = true;
@@ -225,8 +238,17 @@ export default class App {
 		const name = (typeof elem === "string" ? elem : "main");
 		const stratox = new Stratox(elem, this.#config);
 
+		if(typeof window?.Alpine?.initTree === "function") {
+			if(!window.Alpine.started) {
+				window.Alpine.start();
+			}	
+		}
+
+		stratox.container().set("dispatch", this.#dispatcher);
+
 		this.#router = routeCollection;
 		this.#dispatcher.dispatcher(routeCollection, serverParams, this.mountIndex(name, stratox, fn));
+		stratox.onload(this.#config.ready);
 		return this;
 	}
 
@@ -289,6 +311,13 @@ export default class App {
 		this.#config.responder = call;
 	}
 
+	getDispatchConfig(dispatchData) {
+		if(typeof dispatchData.config === "object") {
+			return dispatchData.config;
+		}
+		return false;
+	}
+
 	/**
 	 * Mount callable
 	 * @param  {object} 	dispatchData The dispatcher response
@@ -298,40 +327,30 @@ export default class App {
 	 */
 	mountCallback(dispatchData, call, disableFetch) {
 		const inst = this;
-
-		let responseConfig = inst.#config.response;
-		if(typeof dispatchData.controller[2] === "object") {
-			const configs = dispatchData.controller[2];
-			responseConfig = inst.overwriteConfigFromRouter(configs.response, {...inst.#config.response});
-		}
+		const configs = this.getDispatchConfig(dispatchData);
+		const responseConfig = inst.overwriteConfigFromRouter(configs, {...inst.#config.request});
 
 		if(typeof responseConfig.url === "string" && (disableFetch === false)) {
 
 			const url = UrlHelper.trimTrailingSlashes(responseConfig.url);
 			const path = UrlHelper.getPath(inst.getResponseType(responseConfig?.path, dispatchData.path), responseConfig.startPath);
-			const queryStr = UrlHelper.getQueryStr(inst.getResponseType(responseConfig?.request?.get, dispatchData.request.get));
+			const queryStr = UrlHelper.getQueryStr(responseConfig.get(dispatchData.request.get));
 			const uri = url+path+queryStr;
-			const ajaxConfig = responseConfig.config;
-
+			let ajaxConfig = responseConfig.config;
 			dispatchData.url = url;
 
 			if(typeof inst.#config.responder === "function") {
 				inst.#config.responder(call, dispatchData, url, path);
 			} else {
 
-				let post;
 				ajaxConfig.method = dispatchData.verb;
-				if(typeof responseConfig?.request?.post === "object") {
-					post = ObjectHelper.objToFormData(responseConfig.request.post);
-					ajaxConfig.method = "POST";
-				}
-				post = inst.getResponseType(post, dispatchData.request.post)
-				if(ajaxConfig.method == "POST" && post instanceof FormData) {
-					ajaxConfig.body = post;
+				if(dispatchData.verb === "POST" && (typeof dispatchData?.request?.post === "object")) {
+					ajaxConfig.body = ObjectHelper.objToFormData(responseConfig.post(dispatchData.request.post));
 				}
 
 				const fetchResponse = fetch(uri, ajaxConfig);
 				fetchResponse.then(function(response) {
+
 					const errorController = inst.#router.getStatusError(response.status);
 		        	if(errorController) {
 		        		dispatchData.controller = errorController;
@@ -339,17 +358,20 @@ export default class App {
 		        		throw new Error(`HTTP Status error code ${response.status}`);
 		        	}
 
-		        	if(typeof response[responseConfig.dataType] !== "function") {
-		        		throw new Error(`The data type ${responseConfig.dataType} is not supported in fetch`);		        		
+		        	if(typeof response[responseConfig.dataType] === "function") {
+		        		return response[responseConfig.dataType]();
 		        	}
-
-		        	return response[responseConfig.dataType](); 
+		        	return response.text();
 					
 				}).then(function(dataResponse) {
-
 					if(responseConfig.dataType === "xml") {
 						const parser = new DOMParser();
     					dispatchData.response = parser.parseFromString(dataResponse, "application/xml");
+
+    					// Check for parsing errors
+					    if (dispatchData.response.getElementsByTagName('parsererror').length) {
+					      	throw new Error('Error parsing XML in Ajax fetch response.');
+					    }
 
 					} else {
 						dispatchData.response = dataResponse;

@@ -26,7 +26,11 @@ export function getQueryStr(get) {
 export function getPath(path, defaultValue) {
 	let newPath = (typeof defaultValue === "string" ? defaultValue : "");
 	if(path.length > 0) {
-		newPath = path.join("/")
+		if(typeof path === "string") {
+			newPath = path;
+		} else {
+			newPath = path.join("/");
+		}	
 	}
 	return "/"+trimLeadingSlashes(newPath);
 }
