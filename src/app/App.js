@@ -1,6 +1,6 @@
 import { Stratox } from 'stratox/src/Stratox';
 import { Dispatcher } from '@stratox/pilot';
-import { ObjectHelper, UrlHelper } from '@stratox/core';
+import { ObjectHelper, UrlHelper, StratoxExtend } from '@stratox/core';
 
 export default class App {
 
@@ -11,9 +11,7 @@ export default class App {
 	#elem;
 
 	constructor(config) {
-		
 		const inst = this;
-		
 		if(!config?.prepAsyncViews) {
 			config.prepAsyncViews = import.meta.glob('@/templates/views/**/*.js');
 		}
@@ -236,7 +234,7 @@ export default class App {
 	mount(routeCollection, serverParams, fn) {
 		const elem = this.getElement();
 		const name = (typeof elem === "string" ? elem : "main");
-		const stratox = new Stratox(elem, this.#config);
+		const stratox = new StratoxExtend(elem, this.#config);
 
 		if(typeof window?.Alpine?.initTree === "function") {
 			if(!window.Alpine.started) {
@@ -262,7 +260,7 @@ export default class App {
 	singlton(fn) {
 		const elem = this.getElement();
 		const name = (typeof elem === "string" ? elem : "main");
-		const stratox = new Stratox(elem, this.#config);
+		const stratox = new StratoxExtend(elem, this.#config);
 		const singleton = this.mountIndex(name, stratox);
 
 		singleton({
@@ -331,6 +329,7 @@ export default class App {
 		const responseConfig = inst.overwriteConfigFromRouter(configs, {...inst.#config.request});
 
 		if(typeof responseConfig.url === "string" && (disableFetch === false)) {
+
 
 			const url = UrlHelper.trimTrailingSlashes(responseConfig.url);
 			const path = UrlHelper.getPath(inst.getResponseType(responseConfig?.path, dispatchData.path), responseConfig.startPath);
