@@ -17,6 +17,10 @@ export default class StratoxExtend extends Stratox {
         return `<div id="${elID}"></div>`;
     }
 
+    view(key, data, ajaxConfig) {
+        return this._view(key, data);
+    }
+
     /**
      * Open new Stratox instance
      * @param  {string} elem String element query selector
