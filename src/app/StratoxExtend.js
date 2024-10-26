@@ -1,4 +1,5 @@
 import { Stratox } from 'stratox/src/Stratox';
+import StratoxFetch from './StratoxFetch';
 
 export default class StratoxExtend extends Stratox {
 
@@ -17,8 +18,21 @@ export default class StratoxExtend extends Stratox {
         return `<div id="${elID}"></div>`;
     }
 
-    view(key, data, ajaxConfig) {
-        return this._view(key, data);
+    view(key, data) {
+        const inst = this;
+        if(data instanceof StratoxFetch) {
+            const view = inst._view(key, {
+                isLoading: true
+            });
+            data.complete((response) => {
+                response.isLoading = false;
+                view.data = response;
+                view.update();
+            });
+            return view;
+        } else {
+            return inst._view(key, data);
+        }
     }
 
     /**

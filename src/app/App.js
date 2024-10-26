@@ -1,6 +1,6 @@
 import { Stratox } from 'stratox/src/Stratox';
 import { Dispatcher } from '@stratox/pilot';
-import { ObjectHelper, UrlHelper, StratoxExtend } from '@stratox/core';
+import { ObjectHelper, UrlHelper, StratoxExtend, StratoxFetch } from '@stratox/core';
 
 export default class App {
 
@@ -331,55 +331,35 @@ export default class App {
 		if(typeof responseConfig.url === "string" && (disableFetch === false)) {
 
 
-			const url = UrlHelper.trimTrailingSlashes(responseConfig.url);
 			const path = UrlHelper.getPath(inst.getResponseType(responseConfig?.path, dispatchData.path), responseConfig.startPath);
-			const queryStr = UrlHelper.getQueryStr(responseConfig.get(dispatchData.request.get));
-			const uri = url+path+queryStr;
+			const fetch = new StratoxFetch(responseConfig.url + path, responseConfig.config);
+			fetch.setQueryStr(responseConfig.get(dispatchData.request.get));
+
 			let ajaxConfig = responseConfig.config;
-			dispatchData.url = url;
+			dispatchData.url = fetch.getUrl();
 
 			if(typeof inst.#config.responder === "function") {
-				inst.#config.responder(call, dispatchData, url, path);
+				inst.#config.responder(call, dispatchData, fetch.getUrl(), path);
 			} else {
 
-				ajaxConfig.method = dispatchData.verb;
+				fetch.setMethod(dispatchData.verb);
 				if(dispatchData.verb === "POST" && (typeof dispatchData?.request?.post === "object")) {
-					ajaxConfig.body = ObjectHelper.objToFormData(responseConfig.post(dispatchData.request.post));
+					fetch.setData(responseConfig.post(dispatchData.request.post));
 				}
-
-				const fetchResponse = fetch(uri, ajaxConfig);
-				fetchResponse.then(function(response) {
-
+				
+				fetch.prepare((response) => {
 					const errorController = inst.#router.getStatusError(response.status);
 		        	if(errorController) {
 		        		dispatchData.controller = errorController;
 		        		dispatchData.status = response.status;
 		        		throw new Error(`HTTP Status error code ${response.status}`);
 		        	}
-
-		        	if(typeof response[responseConfig.dataType] === "function") {
-		        		return response[responseConfig.dataType]();
-		        	}
-		        	return response.text();
-					
-				}).then(function(dataResponse) {
-					if(responseConfig.dataType === "xml") {
-						const parser = new DOMParser();
-    					dispatchData.response = parser.parseFromString(dataResponse, "application/xml");
-
-    					// Check for parsing errors
-					    if (dispatchData.response.getElementsByTagName('parsererror').length) {
-					      	throw new Error('Error parsing XML in Ajax fetch response.');
-					    }
-
-					} else {
-						dispatchData.response = dataResponse;
-					}
+				}).execute((response) => {
+					dispatchData.response = response;
 					call(dispatchData);
 
-				}).catch(function(error) {
-				    console.error('There was a problem with your fetch operation:', error);
-				    call(dispatchData);
+				}).error(() => {
+					call(dispatchData);
 				});
 			}
 
