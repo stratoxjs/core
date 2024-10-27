@@ -109,7 +109,6 @@ export default class App {
 			}			
 		}
 
-
 		// Pass response to builder
 		if(createResponse?.type !== "takeover") {
 			const obj = App.createResponse(inst);

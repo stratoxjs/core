@@ -3,36 +3,65 @@ import StratoxFetch from './StratoxFetch';
 
 export default class StratoxExtend extends Stratox {
 
-	/**
-     * Attach view is the same as attachViewToEl
-     * EXCEPT for that it will also prepare the element container!
+    /**
+     * Create a self contained block within a view
+     * @param  {callable} view
+     * @param  {object|StratoxFetch} data
+     * @param  {callable} call
+     * @return {string}
      */
-    attachPartial(view, data, call) {
+    block(view, data, config) {
+        const isFetch = (data instanceof StratoxFetch);
         const elID = this.getID(this.genRandStr(6));
-        const clone = this.attachViewToEl(`#${elID}`, view, data, function(item, el) {
-        	// Ajax
-        	if(typeof call === "function") {
-        		call(...arguments);
-        	}
-        });
+        const clone = this.attachViewToEl(`#${elID}`, view, (isFetch ? {isLoading: true} : data), function(item, el) {
+            const inst = this;
+            if(isFetch) {
+                data.complete((response) => {
+                    response.isLoading = false;
+                    item.data = response;
+                    if(typeof config?.response === "function") {
+                        config.response(item.data, item, el);
+                    }
+                    inst.update();
+                });
+            } else {
+                if(typeof config?.response === "function") {
+                    config.response(item.data, item, el);
+                }
+            }
+        }, config?.modify);
         return `<div id="${elID}"></div>`;
     }
 
-    view(key, data) {
+    /**
+     * Create a block within a view
+     * @param  {callable} view
+     * @param  {object|StratoxFetch} data
+     * @return {string}
+     */
+    view(key, data, call) {
         const inst = this;
         if(data instanceof StratoxFetch) {
             const view = inst._view(key, {
                 isLoading: true
             });
+
             data.complete((response) => {
                 response.isLoading = false;
                 view.data = response;
+                alert("ww")
                 view.update();
             });
             return view;
         } else {
             return inst._view(key, data);
         }
+    }
+
+    partial(...args) {
+        const inst = this.clone();
+        const view = inst.view(...args);
+        return inst.execute();
     }
 
     /**
@@ -44,7 +73,17 @@ export default class StratoxExtend extends Stratox {
         return new StratoxExtend(elem);
     }
 
+    /**
+     * DEPRECTAED: Use clone instead
+     */
     open(elem) {
 	    return this.clone(elem);
 	}
+
+    /**
+     * DEPRECTAED: Use block instead
+     */
+    attachPartial(...args) {
+        return this.block(...args);
+    }
 }
