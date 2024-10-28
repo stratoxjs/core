@@ -13,7 +13,8 @@ export default class StratoxExtend extends Stratox {
     block(view, data, config) {
         const isFetch = (data instanceof StratoxFetch);
         const elID = this.getID(this.genRandStr(6));
-        const clone = this.attachViewToEl(`#${elID}`, view, (isFetch ? {isLoading: true} : data), function(item, el) {
+        const output = `<div id="${elID}"></div>`;
+        const inst = this.attachViewToEl(`#${elID}`, view, (isFetch ? {isLoading: true} : data), function(item, el) {
             const inst = this;
             if(isFetch) {
                 data.complete((response) => {
@@ -30,7 +31,14 @@ export default class StratoxExtend extends Stratox {
                 }
             }
         }, config?.modify);
-        return `<div id="${elID}"></div>`;
+
+        return {
+            output,
+            view: inst,
+            toString() {
+                return output;
+            }
+        };
     }
 
     /**

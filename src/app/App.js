@@ -69,8 +69,13 @@ export default class App {
 	 * @return {string}
 	 */
 	main(data, container, helper, builder) {
-		let response, method, inst = this.open();
-		
+		let response, method, inst = this.clone();
+
+		if(container.has("dispatch")) {
+			inst.container().set("request", data.meta);
+			inst.container().set("dispatch", container.get("dispatch"));
+		}
+
 		// Controller
 		if(typeof data.meta.controller === "function") {
 			method = data.meta.controller;
@@ -95,7 +100,7 @@ export default class App {
 
 			} else {
 				if(!createResponse?.append) {
-					inst = this.open();
+					inst = this.clone();
 				}
 				response = (createResponse?.output ?? (typeof createResponse === "string" ? createResponse : ""));
 				Stratox.setComponent("StratoxPlaceholderView", function(data) {
