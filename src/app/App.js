@@ -71,6 +71,7 @@ export default class App {
 	main(data, container, helper, builder) {
 		let response, method, inst = this.clone();
 
+		// Pass dispatcher to the views
 		if(container.has("dispatch")) {
 			inst.container().set("request", data.meta);
 			inst.container().set("dispatch", container.get("dispatch"));
@@ -85,7 +86,11 @@ export default class App {
 		}
 		
 		if(typeof method !== "function") {
-			throw new Error("The router controller argument expects either a callable or an array with class and method");
+			console.group("Missing controller");
+			console.error("Could not find the controller that has been specified in the router:");
+			console.error(data.meta.controller);
+			console.groupEnd();
+			return;
 		}
 
 		// Response
@@ -94,7 +99,6 @@ export default class App {
 			inst = Array(createResponse);
 
 		} else if(typeof createResponse === "string" || typeof createResponse === "object") {
-			
 			if(typeof createResponse[0] === "object") {
 				inst = createResponse;
 
@@ -109,7 +113,6 @@ export default class App {
 				inst.view("StratoxPlaceholderView", {
 					response: response
 				});
-				
 				inst = Array(inst);
 			}			
 		}
@@ -132,7 +135,6 @@ export default class App {
 				return call;
 			}
 		}
-
 
 		return response;
 	}
