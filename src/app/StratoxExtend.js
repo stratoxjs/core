@@ -13,8 +13,9 @@ export default class StratoxExtend extends Stratox {
     const isFetch = (data instanceof StratoxFetch);
     const elID = this.getID(this.genRandStr(6));
     const output = `<div id="${elID}"></div>`;
-    const inst = this.attachViewToEl(`#${elID}`, view, (isFetch ? { isLoading: true } : data), (item, el) => {
-      const inst = this;
+    const inst = this.attachViewToEl(`#${elID}`, view, (isFetch ? { isLoading: true } : data), (itemArg, el) => {
+      const viewInst = this;
+      const item = itemArg;
       if (isFetch) {
         data.complete((response) => {
           response.isLoading = false;
@@ -22,7 +23,7 @@ export default class StratoxExtend extends Stratox {
           if (typeof config?.response === 'function') {
             config.response(item.data, item, el);
           }
-          inst.update();
+          viewInst.update();
         });
       } else if (typeof config?.response === 'function') {
         config.response(item.data, item, el);
@@ -74,7 +75,7 @@ export default class StratoxExtend extends Stratox {
    * DEPRECTAED: Use clone instead
    */
   open(elem) {
-	    return this.clone(elem);
+    return this.clone(elem);
   }
 
   /**

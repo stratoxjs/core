@@ -8,7 +8,8 @@
  * @param  {string|URLSearchParams} get
  * @return {string}
  */
-export function getQueryStr(get) {
+export function getQueryStr(getArg) {
+  let get = getArg;
   if (get instanceof URLSearchParams) {
     get = get.toString();
   }
@@ -16,6 +17,15 @@ export function getQueryStr(get) {
     return `?${get}`;
   }
   return '';
+}
+
+/**
+ * Trim leading slashes
+ * @param  {string} path
+ * @return {string}
+ */
+export function trimLeadingSlashes(path) {
+  return path.replace(/^\/+/, '');
 }
 
 /**
@@ -36,15 +46,6 @@ export function getPath(path, defaultValue) {
 }
 
 /**
- * Trim leading slashes
- * @param  {string} path
- * @return {string}
- */
-export function trimLeadingSlashes(path) {
-  return path.replace(/^\/+/, '');
-}
-
-/**
  * Trim trailing slashes
  * @param  {string} path
  * @return {string}
@@ -58,7 +59,8 @@ export function trimTrailingSlashes(path) {
  * @param {string} path
  * @return {string}
  */
-export function addLeadingSlash(path) {
+export function addLeadingSlash(pathArgs) {
+  let path = pathArgs;
   if (!path.startsWith('/')) path = `/${path}`;
   return path;
 }
@@ -76,8 +78,7 @@ export function htmlspecialchars(value) {
     '"': '&quot;',
     "'": '&#39;',
   };
-  const keys = Object.keys(char);
-  const regex = new RegExp('[&|<|>|"|\']', 'g');
+  const regex = /[&<>"']/g;
   return value.replace(regex, (match) => char[match]);
 }
 
@@ -86,7 +87,7 @@ export function htmlspecialchars(value) {
  * @param  {string} value
  * @return {string}
  */
-export function htmlspecialchars_decode(value) {
+export function htmlspecialcharsDecode(value) {
   const char = {
     '&amp;': '&',
     '&lt;': '<',
@@ -94,8 +95,7 @@ export function htmlspecialchars_decode(value) {
     '&quot;': '"',
     '&#39;': "'",
   };
-  const keys = Object.keys(char);
-  const regex = new RegExp('[&|<|>|"|\']', 'g');
+  const regex = /&amp;|&lt;|&gt;|&quot;|&#39;/g;
   return value.replace(regex, (match) => char[match]);
 }
 
@@ -104,9 +104,11 @@ export function htmlspecialchars_decode(value) {
  * @param  {string|URLSearchParams} value
  * @return {object}
  */
-export function parseStr(value) {
+export function parseStr(valueArg) {
+  let value = valueArg;
   if (!(value instanceof URLSearchParams)) {
     value = new URLSearchParams(value);
   }
-  return [...value.entries()].reduce((items, [key, val]) => Object.assign(items, { [key]: val }), {});
+  const entries = value.entries();
+  return [...entries].reduce((items, [key, val]) => Object.assign(items, { [key]: val }), {});
 }

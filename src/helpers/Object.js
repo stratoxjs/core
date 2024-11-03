@@ -13,7 +13,8 @@ export function isObject(target) {
  * @param  {object} source
  * @return {object}
  */
-export function deepMerge(target, source) {
+export function deepMerge(targetObj, source) {
+  const target = targetObj;
   if (!isObject(target) || !isObject(source)) {
     return source;
   }
@@ -38,8 +39,8 @@ export function deepMerge(target, source) {
  */
 export function objToFormData(request) {
   const formData = new FormData();
-  for (const [key, value] of Object.entries(request)) {
+  Object.entries(request).forEach(([key, value]) => {
     formData.append(key, value);
-  }
+  });
   return formData;
 }
