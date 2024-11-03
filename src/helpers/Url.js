@@ -9,13 +9,13 @@
  * @return {string}
  */
 export function getQueryStr(get) {
-	if(get instanceof URLSearchParams) {
-		get = get.toString();
-	}
-	if(typeof get === "string" && get.length > 0) {
-		return "?"+get;
-	}
-	return "";
+  if (get instanceof URLSearchParams) {
+    get = get.toString();
+  }
+  if (typeof get === 'string' && get.length > 0) {
+    return `?${get}`;
+  }
+  return '';
 }
 
 /**
@@ -24,33 +24,33 @@ export function getQueryStr(get) {
  * @return {string}
  */
 export function getPath(path, defaultValue) {
-	let newPath = (typeof defaultValue === "string" ? defaultValue : "");
-	if(path.length > 0) {
-		if(typeof path === "string") {
-			newPath = path;
-		} else {
-			newPath = path.join("/");
-		}	
-	}
-	return "/"+trimLeadingSlashes(newPath);
+  let newPath = (typeof defaultValue === 'string' ? defaultValue : '');
+  if (path.length > 0) {
+    if (typeof path === 'string') {
+      newPath = path;
+    } else {
+      newPath = path.join('/');
+    }
+  }
+  return `/${trimLeadingSlashes(newPath)}`;
 }
 
 /**
- * Trim leading slahses
+ * Trim leading slashes
  * @param  {string} path
  * @return {string}
  */
 export function trimLeadingSlashes(path) {
-	return path.replace(/^\/+/, "");
+  return path.replace(/^\/+/, '');
 }
 
 /**
- * Trim trailing slahses
+ * Trim trailing slashes
  * @param  {string} path
  * @return {string}
  */
 export function trimTrailingSlashes(path) {
-	return path.replace(/\/+$/, "");
+  return path.replace(/\/+$/, '');
 }
 
 /**
@@ -59,8 +59,8 @@ export function trimTrailingSlashes(path) {
  * @return {string}
  */
 export function addLeadingSlash(path) {
-    if(!path.startsWith("/")) path = "/"+path;
-    return path;
+  if (!path.startsWith('/')) path = `/${path}`;
+  return path;
 }
 
 /**
@@ -69,16 +69,16 @@ export function addLeadingSlash(path) {
  * @return {string}
  */
 export function htmlspecialchars(value) {
-	const char = {
-	    '&': '&amp;',
-	    '<': '&lt;',
-	    '>': '&gt;',
-	    '"': '&quot;',
-	    "'": '&#39;'
-	};
-    const keys = Object.keys(char);
-    const regex = new RegExp('[&|<|>|"|\']', 'g');
-    return value.replace(regex, match => char[match]);
+  const char = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+  const keys = Object.keys(char);
+  const regex = new RegExp('[&|<|>|"|\']', 'g');
+  return value.replace(regex, (match) => char[match]);
 }
 
 /**
@@ -87,16 +87,16 @@ export function htmlspecialchars(value) {
  * @return {string}
  */
 export function htmlspecialchars_decode(value) {
-    const char = {
-	    '&amp;': '&',
-	    '&lt;': '<',
-	    '&gt;': '>',
-	    '&quot;': '"',
-	    '&#39;': "'"
-	};
-    const keys = Object.keys(char);
-    const regex = new RegExp('[&|<|>|"|\']', 'g');
-    return value.replace(regex, match => char[match]);
+  const char = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+  };
+  const keys = Object.keys(char);
+  const regex = new RegExp('[&|<|>|"|\']', 'g');
+  return value.replace(regex, (match) => char[match]);
 }
 
 /**
@@ -105,8 +105,8 @@ export function htmlspecialchars_decode(value) {
  * @return {object}
  */
 export function parseStr(value) {
-    if(!(value instanceof URLSearchParams)) {
-        value = new URLSearchParams(value);
-    }
-    return [...value.entries()].reduce((items, [key, val]) => Object.assign(items, { [key]: val }), {})
+  if (!(value instanceof URLSearchParams)) {
+    value = new URLSearchParams(value);
+  }
+  return [...value.entries()].reduce((items, [key, val]) => Object.assign(items, { [key]: val }), {});
 }
