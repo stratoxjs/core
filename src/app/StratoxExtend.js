@@ -1,4 +1,4 @@
-import { Stratox } from 'stratox/src/Stratox';
+import Stratox from 'stratox/src/Stratox';
 import StratoxFetch from './StratoxFetch';
 
 export default class StratoxExtend extends Stratox {

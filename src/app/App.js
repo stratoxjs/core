@@ -1,4 +1,4 @@
-import { Stratox } from 'stratox/src/Stratox';
+import Stratox from 'stratox/src/Stratox';
 import { Dispatcher } from '@stratox/pilot';
 import StratoxExtend from './StratoxExtend';
 import StratoxFetch from './StratoxFetch';
@@ -26,7 +26,7 @@ export default class App {
     inst.#config = ObjectHelper.deepMerge({
       prepAsyncViews: {},
       directory: '/src/templates/views/',
-      components: {},
+      fields: {},
       helper: {},
       responder: null,
       dispatcher: {
@@ -61,7 +61,7 @@ export default class App {
       popegation: false,
       directory: inst.setViewDirectory(inst.#config.directory),
       handlers: {
-        fields: inst.#config.components,
+        fields: inst.#config.fields,
         helper: inst.#config.helper,
       },
     });
