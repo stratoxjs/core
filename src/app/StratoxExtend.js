@@ -13,22 +13,28 @@ export default class StratoxExtend extends Stratox {
     const isFetch = (data instanceof StratoxFetch);
     const elID = this.getID(this.genRandStr(6));
     const output = `<div id="${elID}"></div>`;
-    const inst = this.attachViewToEl(`#${elID}`, view, (isFetch ? { isLoading: true } : data), (itemArg, el) => {
+    const inst = this.attachViewToEl(`#${elID}`, view, (isFetch ? {} : data), (instArg, itemArg, el) => {
       const viewInst = this;
       const item = itemArg;
       if (isFetch) {
         data.complete((response) => {
-          response.isLoading = false;
+          itemArg.setLoading(false);
           item.data = response;
           if (typeof config?.response === 'function') {
-            config.response(item.data, item, el);
+            config.response.apply(instArg, [item.data, instArg, item, el]);
           }
-          viewInst.update();
+          instArg.update();
         });
       } else if (typeof config?.response === 'function') {
-        config.response(item.data, item, el);
+        itemArg.setLoading(false);
+        config.response.apply(instArg, [item.data, instArg, item, el]);
       }
-    }, config?.modify);
+    }, (instArg, itemArg, el) => {
+      itemArg.setLoading(true);
+      if (typeof config?.modify === 'function') {
+        config.modify.apply(instArg, [instArg, itemArg, el]);
+      }
+    });
 
     return {
       output,
@@ -48,12 +54,11 @@ export default class StratoxExtend extends Stratox {
   view(key, data, call) {
     const inst = this;
     if (data instanceof StratoxFetch) {
-      const view = inst.viewEngine(key, {
-        isLoading: true,
-      });
+      const view = inst.viewEngine(key, {});
 
+      view.setLoading(true);
       data.complete((response) => {
-        response.isLoading = false;
+        view.setLoading(false);
         view.data = response;
         view.update();
       });
