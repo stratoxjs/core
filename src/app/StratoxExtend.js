@@ -1,50 +1,115 @@
-import { Stratox } from 'stratox/src/Stratox';
+import Stratox from 'stratox/src/Stratox';
 import StratoxFetch from './StratoxFetch';
 
 export default class StratoxExtend extends Stratox {
+  #views = [];
 
-	/**
-     * Attach view is the same as attachViewToEl
-     * EXCEPT for that it will also prepare the element container!
-     */
-    attachPartial(view, data, call) {
-        const elID = this.getID(this.genRandStr(6));
-        const clone = this.attachViewToEl(`#${elID}`, view, data, function(item, el) {
-        	// Ajax
-        	if(typeof call === "function") {
-        		call(...arguments);
-        	}
+  /**
+   * Create a self contained block within a view
+   * @param  {callable} view
+   * @param  {object|StratoxFetch} data
+   * @param  {callable} call
+   * @return {string}
+   */
+  block(view, data, config) {
+    const isFetch = (data instanceof StratoxFetch);
+    const elID = this.getID(this.genRandStr(6));
+    const output = `<div id="${elID}"></div>`;
+    const inst = this.attachViewToEl(`#${elID}`, view, (isFetch ? {} : data), (instArg, itemArg, el) => {
+      const viewInst = this;
+      const item = itemArg;
+      if (isFetch) {
+        data.complete((response) => {
+          itemArg.setLoading(false);
+          item.data = response;
+          if (typeof config?.response === 'function') {
+            config.response.apply(instArg, [item.data, instArg, item, el]);
+          }
+          instArg.update();
         });
-        return `<div id="${elID}"></div>`;
-    }
+      } else if (typeof config?.response === 'function') {
+        itemArg.setLoading(false);
+        config.response.apply(instArg, [item.data, instArg, item, el]);
+      }
+    }, (instArg, itemArg, el) => {
+      itemArg.setLoading(true);
+      if (typeof config?.modify === 'function') {
+        config.modify.apply(instArg, [instArg, itemArg, el]);
+      }
+    });
 
-    view(key, data) {
-        const inst = this;
-        if(data instanceof StratoxFetch) {
-            const view = inst._view(key, {
-                isLoading: true
-            });
-            data.complete((response) => {
-                response.isLoading = false;
-                view.data = response;
-                view.update();
-            });
-            return view;
-        } else {
-            return inst._view(key, data);
-        }
-    }
+    return {
+      output,
+      view: inst,
+      toString() {
+        return output;
+      },
+    };
+  }
 
-    /**
-     * Open new Stratox instance
-     * @param  {string} elem String element query selector
-     * @return {Stratox}
-     */
-    clone(elem) {
-        return new StratoxExtend(elem);
-    }
+  /**
+   * Create a latyout with new stratox view instances avoiding bubbling problems
+   * This should be used instead of view inside of the framework
+   * @param  {callable} view
+   * @param  {object|StratoxFetch} data
+   * @return {string}
+   */
+  layout(key, data, call) {
+    const view = this.clone();
+    const item = view.view(key, data, call);
+    this.#views.push(view);
+    return { view, item };
+  }
 
-    open(elem) {
-	    return this.clone(elem);
-	}
+  /**
+   * Get prepared views ready to be executed
+   * @return {array}
+   */
+  getViews() {
+    return this.#views;
+  }
+
+  /**
+   * Create a view instance
+   * @param  {callable} view
+   * @param  {object|StratoxFetch} data
+   * @return {string}
+   */
+  view(key, data, call) {
+    const inst = this;
+    if (data instanceof StratoxFetch) {
+      const view = inst.viewEngine(key, {});
+      view.setLoading(true);
+      data.complete((response) => {
+        view.setLoading(false);
+        view.data = response;
+        view.update();
+      });
+      return view;
+    }
+    return inst.viewEngine(key, data);
+  }
+
+  /**
+   * Open new Stratox instance
+   * @param  {string} elem String element query selector
+   * @return {Stratox}
+   */
+  clone(elem) {
+    return new StratoxExtend(elem);
+  }
+
+  /**
+   * DEPRECTAED: Use clone instead
+   */
+  open(elem) {
+    return this.clone(elem);
+  }
+
+  /**
+   * DEPRECTAED: Use block instead
+   */
+  attachPartial(...args) {
+    return this.block(...args);
+  }
 }
