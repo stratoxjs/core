@@ -2,6 +2,8 @@ import Stratox from 'stratox/src/Stratox';
 import StratoxFetch from './StratoxFetch';
 
 export default class StratoxExtend extends Stratox {
+  #views = [];
+
   /**
    * Create a self contained block within a view
    * @param  {callable} view
@@ -46,7 +48,29 @@ export default class StratoxExtend extends Stratox {
   }
 
   /**
-   * Create a block within a view
+   * Create a latyout with new stratox view instances avoiding bubbling problems
+   * This should be used instead of view inside of the framework
+   * @param  {callable} view
+   * @param  {object|StratoxFetch} data
+   * @return {string}
+   */
+  layout(key, data, call) {
+    const view = this.clone();
+    const item = view.view(key, data, call);
+    this.#views.push(view);
+    return { view, item };
+  }
+
+  /**
+   * Get prepared views ready to be executed
+   * @return {array}
+   */
+  getViews() {
+    return this.#views;
+  }
+
+  /**
+   * Create a view instance
    * @param  {callable} view
    * @param  {object|StratoxFetch} data
    * @return {string}
@@ -55,7 +79,6 @@ export default class StratoxExtend extends Stratox {
     const inst = this;
     if (data instanceof StratoxFetch) {
       const view = inst.viewEngine(key, {});
-
       view.setLoading(true);
       data.complete((response) => {
         view.setLoading(false);

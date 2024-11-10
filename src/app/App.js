@@ -104,19 +104,25 @@ export default class App {
     // Response
     const createResponse = method.apply(inst, [data.meta, container, helper, builder, data.app]);
     if (createResponse instanceof Stratox) {
-      inst = Array(createResponse);
+      if (createResponse.getViews().length > 0) {
+        inst = createResponse.getViews();
+      } else {
+        inst = Array(createResponse);
+      }
     } else if (typeof createResponse === 'string' || typeof createResponse === 'object') {
       if (typeof createResponse[0] === 'object') {
         inst = createResponse;
       } else {
-        if (!createResponse?.append) {
+        if (createResponse?.clone === true) {
           inst = this.clone();
         }
         response = (createResponse?.output ?? (typeof createResponse === 'string' ? createResponse : ''));
+
         Stratox.setComponent('StratoxPlaceholderView', (placeholder) => placeholder.response);
         inst.view('StratoxPlaceholderView', {
           response,
         });
+
         inst = Array(inst);
       }
     }
@@ -149,11 +155,13 @@ export default class App {
    * @return {object}
    */
   static createResponse(response) {
-    let i; let
-      output = '';
+    let i;
+    let output = '';
     for (i = 0; i < response.length; i++) {
-      const inst = response[i]; let carrot = false; let uniqueIDA; const uniqueIDB = `stratox-el-${App.genRandStr(10)}`; let
-        out = '';
+      const inst = response[i]; let carrot = false; let uniqueIDA;
+      const uniqueIDB = `stratox-el-${App.genRandStr(10)}`;
+      let out = '';
+
       out = inst.execute(() => {
         if (carrot) {
           const el = document.getElementById(uniqueIDA);
