@@ -1,7 +1,7 @@
 {
   "name": "@stratox/core",
   "type": "module",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "The framework core functionality.",
   "main": "src/index.js",
   "scripts": {
