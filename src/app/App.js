@@ -80,8 +80,10 @@ export default class App {
       inst = this.clone();
 
     // Pass dispatcher to the views
-    if (container.has('dispatch')) {
+    if (!container.has('request')) {
       inst.container().set('request', data.meta);
+    }
+    if (!container.has('dispatch')) {
       inst.container().set('dispatch', container.get('dispatch'));
     }
 

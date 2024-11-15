@@ -13,8 +13,10 @@ export default class StratoxExtend extends Stratox {
    */
   block(view, data, config) {
     const isFetch = (data instanceof StratoxFetch);
+    const doneCall = (typeof config === 'function') ? config : config?.response;
     const elID = this.getID(this.genRandStr(6));
     const output = `<div id="${elID}"></div>`;
+    let itemInherit = {};
     const inst = this.attachViewToEl(`#${elID}`, view, (isFetch ? {} : data), (instArg, itemArg, el) => {
       const viewInst = this;
       const item = itemArg;
@@ -22,16 +24,17 @@ export default class StratoxExtend extends Stratox {
         data.complete((response) => {
           itemArg.setLoading(false);
           item.data = response;
-          if (typeof config?.response === 'function') {
-            config.response.apply(instArg, [item.data, instArg, item, el]);
+          if (typeof doneCall === 'function') {
+            doneCall.apply(instArg, [item.data, instArg, item, el]);
           }
           instArg.update();
         });
-      } else if (typeof config?.response === 'function') {
+      } else if (typeof doneCall === 'function') {
         itemArg.setLoading(false);
-        config.response.apply(instArg, [item.data, instArg, item, el]);
+        doneCall.apply(instArg, [item.data, instArg, item, el]);
       }
     }, (instArg, itemArg, el) => {
+      itemInherit = itemArg;
       itemArg.setLoading(true);
       if (typeof config?.modify === 'function') {
         config.modify.apply(instArg, [instArg, itemArg, el]);
@@ -41,6 +44,7 @@ export default class StratoxExtend extends Stratox {
     return {
       output,
       view: inst,
+      item: itemInherit,
       toString() {
         return output;
       },

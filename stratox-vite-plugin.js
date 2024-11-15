@@ -1,4 +1,4 @@
-import { normalizePath } from 'vite'
+import { normalizePath } from 'vite';
 
 export default function stratoxVitePlugin() {
   return {
@@ -6,26 +6,26 @@ export default function stratoxVitePlugin() {
     config(userConfig) {
       return {
         server: {
-          //port: 8080
+          // port: 8080
         },
         build: {
           rollupOptions: {
             onwarn(warning, warn) {
               if (
-                warning.code === 'PLUGIN_WARNING' &&
-                warning.plugin === 'vite:reporter'
+                warning.code === 'PLUGIN_WARNING'
+                && warning.plugin === 'vite:reporter'
               ) {
-                return
+                return;
               }
-              warn(warning)
+              warn(warning);
             },
             output: {
               chunkFileNames(assetInfo) {
-                const pathToFile = normalizePath(assetInfo.facadeModuleId)
+                const pathToFile = normalizePath(assetInfo.facadeModuleId);
                 if (/\/src\/templates\/views\/.*\.js$/.test(pathToFile)) {
-                  return 'assets/views/[name].js'
+                  return 'assets/views/[name].js';
                 }
-                return 'assets/[name]-[hash].js'
+                return 'assets/[name]-[hash].js';
               },
             },
           },
@@ -43,8 +43,8 @@ export default function stratoxVitePlugin() {
               // Optional Terser mangle options
             },
           },
-        }
-      }
+        },
+      };
     },
-  }
+  };
 }
