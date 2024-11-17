@@ -76,8 +76,12 @@ export default class App {
    * @return {string}
    */
   main(data, container, helper, builder) {
-    let response; let method; let
-      inst = this.clone();
+    let response;
+    let method;
+    let inst = this.clone();
+
+    // Exclude dispatch from reset
+    inst.container().resetAll(['dispatch']);
 
     // Pass dispatcher to the views
     inst.container().set('request', data.meta, true);
