@@ -270,7 +270,7 @@ export default class App {
 
     this.#router = routeCollection;
     this.#dispatcher.dispatcher(routeCollection, serverParams, this.mountIndex(name, stratox, fn));
-    stratox.onload(this.#config.ready);
+    stratox.onload(this.#config.ready.apply(this, [stratox, this.#dispatcher, this.#router]));
     return this;
   }
 
