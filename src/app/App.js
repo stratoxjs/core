@@ -89,6 +89,8 @@ export default class App {
       inst.container().set('dispatch', container.get('dispatch'));
     }
 
+    inst.container().set('state', container.get('dispatch').getStateHandler());
+
     // Controller
     if (typeof data.meta.controller === 'function') {
       method = data.meta.controller;
