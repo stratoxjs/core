@@ -84,7 +84,7 @@ export default class App {
     inst.container().resetAll(['dispatch']);
 
     // Pass dispatcher to the views
-    inst.container().set('server', data.meta, true);
+    inst.container().set('http', data.meta, true);
     inst.container().set('request', data.meta?.request, true);
     if (!container.has('dispatch')) {
       inst.container().set('dispatch', container.get('dispatch'));
@@ -110,20 +110,20 @@ export default class App {
 
     // Response
 
-    const isNewStyle = typeof method === 'function' && method.length === 1;
+    // The destructured validation check will be removed in version 4?
+    const fnParams = method.toString().match(/\(([^)]*)\)/)[1];
+    const isNewStyle = typeof method === 'function' && method.length === 1 && /\{.*\}/.test(fnParams);
     const args = isNewStyle
       ? [
         {
-          server: data.meta,
-          request: data.meta.request,
-          services: container,
+          services: inst.container(),
           helper,
           context: builder,
           view: inst,
-          ...container.list(),
+          ...inst.container().list(),
         },
       ]
-      : [data.meta, container, helper, builder, data.app];
+      : [data.meta, inst.container(), helper, builder, data.app];
 
 
     const createResponse = method.apply(inst, args);
