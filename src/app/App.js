@@ -84,7 +84,8 @@ export default class App {
     inst.container().resetAll(['dispatch']);
 
     // Pass dispatcher to the views
-    inst.container().set('request', data.meta, true);
+    inst.container().set('server', data.meta, true);
+    inst.container().set('request', data.meta?.request, true);
     if (!container.has('dispatch')) {
       inst.container().set('dispatch', container.get('dispatch'));
     }
@@ -108,7 +109,24 @@ export default class App {
     }
 
     // Response
-    const createResponse = method.apply(inst, [data.meta, container, helper, builder, data.app]);
+
+    const isNewStyle = typeof method === 'function' && method.length === 1;
+    const args = isNewStyle
+      ? [
+        {
+          server: data.meta,
+          request: data.meta.request,
+          services: container,
+          helper,
+          context: builder,
+          view: inst,
+          ...container.list(),
+        },
+      ]
+      : [data.meta, container, helper, builder, data.app];
+
+
+    const createResponse = method.apply(inst, args);
     if (createResponse instanceof Stratox) {
       if (createResponse.getViews().length > 0) {
         inst = createResponse.getViews();
