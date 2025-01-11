@@ -6,7 +6,6 @@ import * as UrlHelper from '../helpers/Url';
 import * as ObjectHelper from '../helpers/Object';
 
 export default class App {
-  #stratox;
 
   #dispatcher;
 
