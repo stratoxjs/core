@@ -26,7 +26,7 @@ export default class App {
     inst.#config = ObjectHelper.deepMerge({
       prepAsyncViews: {},
       directory: '/src/templates/views/',
-      fields: {},
+      fields: null,
       helper: {},
       responder: null,
       dispatcher: {
@@ -86,6 +86,7 @@ export default class App {
     // Pass dispatcher to the views
     inst.container().set('http', data.meta, true);
     inst.container().set('request', data.meta?.request, true);
+    inst.container().set('response', data.meta?.response, true);
     if (!container.has('dispatch')) {
       inst.container().set('dispatch', container.get('dispatch'));
     }
@@ -372,9 +373,12 @@ export default class App {
     const configs = this.getDispatchConfig(dispatchData);
     const responseConfig = inst.overwriteConfigFromRouter(configs, { ...inst.#config.request });
 
-    if (typeof responseConfig.url === 'string' && (disableFetch === false)) {
+    if (typeof responseConfig?.url === 'string' && (disableFetch === false)) {
       const responsePath = inst.getResponseType(responseConfig?.path, dispatchData.path);
-      const path = UrlHelper.getPath(responsePath, responseConfig.startPath);
+      let path = UrlHelper.getPath(responsePath, responseConfig.startPath);
+      if(responsePath.length === 0 && path === "/") {
+        path = "";
+      }
       const fetch = new StratoxFetch(responseConfig.url + path, responseConfig.config);
       fetch.setQueryStr(responseConfig.get(dispatchData.request.get));
 
@@ -440,6 +444,10 @@ export default class App {
       if (fromRouter === false) {
         fromConfig = false;
       } else {
+        // If reuqest url config is overwriten in router make sure the startPath if empty
+        if(Object.entries(fromRouter).length > 0 && typeof fromRouter?.url === "string") {
+          fromRouter.startPath = "";
+        }
         fromConfig = ObjectHelper.deepMerge(fromConfig, fromRouter);
       }
     }

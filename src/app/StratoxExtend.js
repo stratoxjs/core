@@ -6,10 +6,10 @@ export default class StratoxExtend extends Stratox {
 
   /**
    * Create a self contained block within a view
-   * @param  {callable} view
-   * @param  {object|StratoxFetch} data
-   * @param  {callable} call
-   * @return {string}
+   * @param  {string|object|function} key
+   * @param  {object} data
+   * @param  {function} call
+   * @return {object|string}
    */
   block(view, data, config) {
     const isFetch = (data instanceof StratoxFetch);
@@ -54,15 +54,30 @@ export default class StratoxExtend extends Stratox {
   /**
    * Create a latyout with new stratox view instances avoiding bubbling problems
    * This should be used instead of view inside of the framework
-   * @param  {callable} view
-   * @param  {object|StratoxFetch} data
-   * @return {string}
+   * @param  {string|object|function} key
+   * @param  {object} data
+   * @param  {function} call
+   * @return {object}
    */
   layout(key, data, call) {
     const view = this.clone();
     const item = view.view(key, data, call);
     this.#views.push(view);
     return { view, item };
+  }
+
+  /**
+   * Will load as partial if not a utilizing fetch API
+   * @param  {string|object|function} key
+   * @param  {object} data
+   * @param  {function} call
+   * @return {object|string}
+   */
+  partial(key, data, call) {
+    if (data instanceof StratoxFetch) {
+      return this.block(key, data, call);
+    }
+    return this.partialEngine(key, data, call);
   }
 
   /**
