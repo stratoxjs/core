@@ -6,7 +6,6 @@ import * as UrlHelper from '../helpers/Url';
 import * as ObjectHelper from '../helpers/Object';
 
 export default class App {
-  #stratox;
 
   #dispatcher;
 
@@ -26,7 +25,7 @@ export default class App {
     inst.#config = ObjectHelper.deepMerge({
       prepAsyncViews: {},
       directory: '/src/templates/views/',
-      fields: {},
+      fields: null,
       helper: {},
       responder: null,
       dispatcher: {
@@ -84,10 +83,14 @@ export default class App {
     inst.container().resetAll(['dispatch']);
 
     // Pass dispatcher to the views
-    inst.container().set('request', data.meta, true);
+    inst.container().set('http', data.meta, true);
+    inst.container().set('request', data.meta?.request, true);
+    inst.container().set('response', data.meta?.response, true);
     if (!container.has('dispatch')) {
       inst.container().set('dispatch', container.get('dispatch'));
     }
+
+    inst.container().set('state', container.get('dispatch').getStateHandler());
 
     // Controller
     if (typeof data.meta.controller === 'function') {
@@ -106,7 +109,24 @@ export default class App {
     }
 
     // Response
-    const createResponse = method.apply(inst, [data.meta, container, helper, builder, data.app]);
+
+    // The destructured validation check will be removed in version 4?
+    const fnParams = method.toString().match(/\(([^)]*)\)/)[1];
+    const isNewStyle = typeof method === 'function' && method.length === 1 && /\{.*\}/.test(fnParams);
+    const args = isNewStyle
+      ? [
+        {
+          services: inst.container(),
+          helper,
+          context: builder,
+          view: inst,
+          ...inst.container().list(),
+        },
+      ]
+      : [data.meta, inst.container(), helper, builder, data.app];
+
+
+    const createResponse = method.apply(inst, args);
     if (createResponse instanceof Stratox) {
       if (createResponse.getViews().length > 0) {
         inst = createResponse.getViews();
@@ -270,7 +290,7 @@ export default class App {
 
     this.#router = routeCollection;
     this.#dispatcher.dispatcher(routeCollection, serverParams, this.mountIndex(name, stratox, fn));
-    stratox.onload(this.#config.ready);
+    stratox.onload(this.#config.ready.apply(this, [stratox, this.#dispatcher, this.#router]));
     return this;
   }
 
@@ -352,9 +372,12 @@ export default class App {
     const configs = this.getDispatchConfig(dispatchData);
     const responseConfig = inst.overwriteConfigFromRouter(configs, { ...inst.#config.request });
 
-    if (typeof responseConfig.url === 'string' && (disableFetch === false)) {
+    if (typeof responseConfig?.url === 'string' && (disableFetch === false)) {
       const responsePath = inst.getResponseType(responseConfig?.path, dispatchData.path);
-      const path = UrlHelper.getPath(responsePath, responseConfig.startPath);
+      let path = UrlHelper.getPath(responsePath, responseConfig.startPath);
+      if(responsePath.length === 0 && path === "/") {
+        path = "";
+      }
       const fetch = new StratoxFetch(responseConfig.url + path, responseConfig.config);
       fetch.setQueryStr(responseConfig.get(dispatchData.request.get));
 
@@ -420,6 +443,10 @@ export default class App {
       if (fromRouter === false) {
         fromConfig = false;
       } else {
+        // If reuqest url config is overwriten in router make sure the startPath if empty
+        if(Object.entries(fromRouter).length > 0 && typeof fromRouter?.url === "string") {
+          fromRouter.startPath = "";
+        }
         fromConfig = ObjectHelper.deepMerge(fromConfig, fromRouter);
       }
     }
