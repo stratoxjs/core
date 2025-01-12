@@ -1,6 +1,9 @@
-export default function stratoxViteEscapeLiteral() {
-    // Define characters to escape and their replacements
 
+/**
+ * Literal manipulations
+ * @return {object}
+ */
+export default function stratoxViteEscapeLiteral() {
     return {
         name: "vite-plugin-escape-template-literals",
         transform(code, id) {
@@ -9,22 +12,33 @@ export default function stratoxViteEscapeLiteral() {
                 return null;
             }
 
-            // Match all occurrences of the pattern `${...}` and extract the content inside
+            let foundMatch = false;
+            let modifiedString = code;
+
             const matches = [...code.matchAll(/\$\{{([^}]+)\}}/g)];
 
-            // Modify the extracted values
-            const modified = matches.map(match => {
-                const value = match[1]; // Extract the content inside `${}`
-                return value; // Example modification: make it uppercase
-            });
-
-            // Replace the original values in the string with the modified values
-            let modifiedString = code;
             matches.forEach((match, index) => {
-                modifiedString = modifiedString.replace(match[0], `\${(${modified[index]}).replace(/[&<>"'/]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "/": "&#x2F;" })[m])}`);
+                foundMatch = true;
+                modifiedString = modifiedString.replace(match[0], `\${__url.htmlspecialchars(${match[1]})}`);
             });
-
-            return { code: modifiedString, map: null };
+            
+            return { code: getCode(foundMatch, modifiedString), map: null };
         },
     };
+}
+
+/**
+ * Add modifications to code with matches
+ * @param  {bool} foundMatch
+ * @param  {string} code
+ * @return {string}
+ */
+function getCode(foundMatch, code) {
+    if(foundMatch) {
+        const importStatement = `
+            import { UrlHelper as __url } from '@stratox/core';
+        `;
+        code = importStatement+code;
+    }
+    return code;
 }
